@@ -1,6 +1,6 @@
 ---
 name: factory-loop
-description: Fetch, work, and deliver the workshop tickets that arrive as GitHub issues in this repo, using the GitHub CLI (`gh`). Each ticket gets its own `issue-<N>` branch and ends with a pull request into `main` for the user to review and merge, never just a chat reply. Questions get an answer file. Change tickets get the files, config or docs they ask for. Build tickets (a new project, or a feature in an existing one) go through clarifying questions, an approved plan, the build, verification in the browser with Chrome DevTools, and screenshots attached to the PR and ticket. Never destructive. Use this whenever the user says things like "fetch my issues", "check for new tickets", "resolve ticket #3", "work the next ticket", "close out the open issues", or "pick up whatever's in the queue" in this repo, and whenever /loop fires it, even if they don't say "GitHub" or "gh". Not for Jira tickets.
+description: Fetch, work, and deliver the workshop tickets that arrive as GitHub issues in this repo, using the GitHub CLI (`gh`). Each ticket gets its own `issue-<N>` branch and ends with a pull request into `main` for the user to review and merge, never just a chat reply. Questions get an answer file. Change tickets get the files, config or docs they ask for. Build tickets (a new project, or a feature in an existing one) go through clarifying questions, an approved plan, the build, a security review, verification in the browser with Chrome DevTools, and screenshots attached to the PR and ticket. Change and build tickets get a security review after implementation: code-level issues are fixed right away, while dependency/version or network changes wait for the user's approval. Never destructive. Use this whenever the user says things like "fetch my issues", "check for new tickets", "resolve ticket #3", "work the next ticket", "close out the open issues", or "pick up whatever's in the queue" in this repo, and whenever /loop fires it, even if they don't say "GitHub" or "gh". Not for Jira tickets.
 ---
 
 # Factory loop: resolve GitHub tickets
@@ -83,9 +83,9 @@ git status -sb                     # must NOT show "...origin/main"; if it does:
 
 ## 4b. Change: do it
 
-Make the change on the branch, then deliver it (step 5). No questions are needed unless the ask is genuinely ambiguous.
+Make the change on the branch, run the **security review** (section below), then deliver it (step 5). No questions are needed unless the ask is genuinely ambiguous.
 
-## 4c. Build: clarify, plan, approve, build, verify
+## 4c. Build: clarify, plan, approve, build, secure, verify
 
 Building the wrong thing costs more than a question, so build tickets **pause for the user** twice before any code is written. When /loop fires during the pause it waits too, which is expected.
 
@@ -101,7 +101,8 @@ Building the wrong thing costs more than a question, so build tickets **pause fo
    - A **new project** gets its own folder: the one the ticket names, otherwise `projects/<name>/`.
    - It also gets its own short `CLAUDE.md`, and a row in the root `CLAUDE.md` index.
    - For a feature, update the project's `CLAUDE.md` if the data model or files changed.
-4. **Verify in the browser with Chrome DevTools** (`mcp__plugin_chrome-devtools-mcp_chrome-devtools__*`; load them with ToolSearch if they're deferred).
+4. **Security review** (section below). Fix code-level findings now. Findings that need dependency/version or network changes wait for approval.
+5. **Verify in the browser with Chrome DevTools** (`mcp__plugin_chrome-devtools-mcp_chrome-devtools__*`; load them with ToolSearch if they're deferred).
    - Serve the project over HTTP, not `file://`: run `python -m http.server <port> --bind 127.0.0.1` in the project folder, in the background.
    - Open it with `new_page` and an `isolatedContext`, so storage starts clean.
    - Work through **every item on the checklist** like a user would. Take a `take_snapshot` to get element uids, then use `click` and `fill`. Then reload to check that data persists.
@@ -109,7 +110,39 @@ Building the wrong thing costs more than a question, so build tickets **pause fo
    - Save screenshots with `take_screenshot` and a `filePath` of `<project>/screenshots/issue-<N>/<NN>-<what>.png`. Take one per key state, usually 2 to 4.
    - Clean up: `close_page`, then stop the server with TaskStop.
    - If something fails, fix it and verify again. Never report unverified work as done.
-5. **Deliver it** (step 5), with the screenshots embedded in both the PR description and the issue comment.
+   - Verification runs after the security review on purpose: it checks the security fixes too.
+6. **Deliver it** (step 5), with the screenshots embedded in both the PR description and the issue comment.
+
+## Security review: after implementing, before verifying
+
+Run this for every **Change** and **Build** ticket, meaning anything that touched code, config, scripts, hooks or dependencies. Skip it for question tickets that only add an `answers/` file.
+
+1. **Review.** Invoke the `security-review` skill with the Skill tool. It reviews the pending changes on the current branch.
+   - If it reports nothing to review, commit the ticket's work to the branch (step 5's commit, without pushing) and run it again.
+   - Also check the basics it may not know about this repo:
+     - user text is rendered with `textContent`, never `innerHTML`, `eval` or `new Function`
+     - no secrets, keys or tokens in the diff
+     - no new external URLs, CDNs or network calls that the ticket didn't ask for
+     - local servers bind to `127.0.0.1`
+2. **Triage each finding** into one of three buckets:
+
+   | Finding needs | Examples | Action |
+   |---|---|---|
+   | **A code-level fix** | Escaping or encoding, input validation, swapping `innerHTML` for `textContent`, removing `eval`, safer defaults, removing a secret from the change, bounds or type checks, a stricter regex, an auth check in the code | **Fix it right away**, no approval needed. Keep the fix inside the ticket's files and as small as possible, then run the review again to confirm it's resolved. |
+   | **A package or version change** | Adding, removing, upgrading or downgrading a dependency; editing `package.json`, lockfiles or `requirements.txt`; changing a CDN script version; "upgrade X to fix CVE-Y" | **Stop and ask first.** |
+   | **A network or infrastructure change** | Ports, host or bind addresses, CORS, security headers or CSP set by a server or host, TLS or certificates, proxies, firewall rules, DNS, external endpoints or URLs the app calls, auth providers | **Stop and ask first.** |
+
+3. **Asking for approval:** for each finding that needs it, use `AskUserQuestion`. Give:
+   - the finding and its severity
+   - the exact change you propose (package `old → new`, or the network change)
+   - the risk of not doing it
+
+   Offer three options: **Approve fix**, **Leave as-is (note it in the PR)**, **Defer to a follow-up ticket**. Make no change until they approve. A finding they decline stays in the PR's Security section.
+4. **False positives:** if a finding doesn't apply (for example, the input never comes from a user), don't change code. Write one line in the PR saying why.
+5. **Record it:** every PR for a Change or Build ticket gets a `## Security` section listing:
+   - what was reviewed
+   - each finding, with its severity and outcome: *fixed in code*, *approved and fixed*, *left as-is by the user*, *deferred* or *false positive*
+   - or "no findings"
 
 ## 5. Commit, push the branch, open the PR
 
@@ -135,6 +168,9 @@ Closes #<N>
 
 ## What
 <how you read the ticket, then what changed, as bullets>
+
+## Security
+<change and build tickets: what security-review covered, then each finding with its severity and outcome, or "no findings">
 
 ## Verification
 <build tickets: the checklist results from Chrome DevTools, plus "no console errors">
@@ -181,6 +217,7 @@ Keep it short. For each ticket give:
 - how you read it
 - what you did
 - how you verified it
+- the security review outcome: fixes made, plus anything waiting on your approval
 - "waiting for your review and merge"
 
 List any tickets skipped because a PR is already open. Flag anything uncertain. If there were no tickets, say so in one line.

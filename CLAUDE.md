@@ -65,6 +65,8 @@ Full steps are in `.claude/skills/factory-loop/SKILL.md`.
 3. **Question:** write `answers/issue-<N>.md`. **Change:** make it. **Build** (a project or feature):
    ask clarifying questions, get the plan approved, build, then verify with Chrome DevTools and commit
    the screenshots.
+   **Security review** after implementing any change or build, using the `security-review` skill: fix
+   code-level issues right away; dependency/version or network changes wait for the user's approval.
 4. Push the branch, open a PR into `main` with `Closes #<N>`, comment the PR link on the issue, and 👍 it.
    **The user reviews and merges**; the loop never commits to or merges into `main`.
 
