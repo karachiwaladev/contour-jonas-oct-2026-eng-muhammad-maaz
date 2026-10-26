@@ -77,9 +77,11 @@ The user has asked that this run without confirmation prompts, so post, close, a
    ```bash
    git add <specific files>
    git commit -m "Ticket #<N>: <short summary>" -m "Closes #<N>"
-   git push origin main
+   git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push origin main
+   git status -sb   # should show main...origin/main with nothing ahead
    ```
 
+   - Push through the GitHub CLI's login. Plain `git push` fails here with `could not read Username for 'https://github.com'` because git has no stored HTTPS credentials. `gh` is already logged in, and the `-c` flags borrow its token for this one push only. The first `credential.helper=` clears any other helpers so they can't prompt. Your global git config stays unchanged; don't run `gh auth setup-git` unless the user asks.
    - The `Closes #<N>` trailer links the commit to the issue and auto-closes it when the push lands on `main`.
    - Don't add any `Co-Authored-By` or Claude attribution line. The user forbids it.
    - Stage named files, not `git add -A`, so stray local files like `mcp_server.log` don't get pushed.
