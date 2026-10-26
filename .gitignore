@@ -1,0 +1,19 @@
+# Local noise: never auto-committed
+mcp_server.log
+*.log
+.claude/scheduled_tasks.lock
+.claude/settings.local.json
+
+# Secrets: the auto-commit hook stages everything not ignored here
+.env
+.env.*
+*.pem
+*.key
+
+# Dependencies / build output
+node_modules/
+dist/
+build/
+__pycache__/
+.DS_Store
+Thumbs.db

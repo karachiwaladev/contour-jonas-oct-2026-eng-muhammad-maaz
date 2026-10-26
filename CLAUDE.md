@@ -43,7 +43,11 @@ that project's `CLAUDE.md`, not here.
 |------|------------|
 | `README.md` | Workshop rules: scoring, ticket flow, ground rules |
 | `CLAUDE.md` | This file: factory overview and base index |
-| `.claude/skills/factory-loop/` | The ticket loop: fetch issues with `gh`, resolve, close, react |
+| `.claude/skills/factory-loop/` | The ticket loop: fetch issues with `gh`, act on them, push, close, react |
+| `.claude/settings.json` | Stop hook: runs `log_prompts.py`, then `auto_commit.py` |
+| `.claude/hooks/` | `log_prompts.py` (prompts to `.claude/logs/prompts.jsonl`), `auto_commit.py` |
+| `answers/` | `issue-<N>.md`: recorded answers to question tickets |
+| `.gitignore` | Keeps logs, locks and secrets out of auto-commits |
 
 ### Projects
 
@@ -55,15 +59,17 @@ that project's `CLAUDE.md`, not here.
 
 Full steps are in `.claude/skills/factory-loop/SKILL.md`.
 
-1. `gh issue list --state open`: tickets are usually unassigned.
-2. Read the issue body **and** its comments; the comments can change the ask.
-3. Question ticket: answer in a comment, close as completed, 👍 the issue.
-4. Work ticket: make the change, commit to `main` with `Closes #<N>`, push, then comment
-   with the commit link and 👍 the issue.
-5. Verify the final state on GitHub before reporting the ticket as done.
+1. `gh issue list --state open`: tickets are usually unassigned. Read the body **and** the comments.
+2. **Question:** write `answers/issue-<N>.md`, push, comment the answer.
+3. **Change:** make it, push with `Closes #<N>`, comment the SHA.
+4. **Build** (a project or feature): ask clarifying questions, get the plan approved, then build. Verify
+   with Chrome DevTools, commit the screenshots, and embed them in the closing comment.
+5. Commits and pushes to `main` happen automatically; the Stop hook catches leftovers. 👍 the issue, then
+   verify its state on GitHub before reporting it done.
 
 ## Ground rules
 
 - Training repo only: no Jonas or Contour code, no real keys or secrets.
+- **Never destructive:** no deleting, force-pushing, resetting or rewriting history. A ticket that asks
+  for that waits for the user's explicit confirmation.
 - No `Co-Authored-By` / AI attribution lines in commits.
-- Stage files by name; never commit `mcp_server.log` or other local noise.
