@@ -1,13 +1,18 @@
 ---
 name: factory-loop
-description: Fetch, work, and close the workshop tickets that arrive as GitHub issues in this repo, using the GitHub CLI (`gh`). Every ticket ends with a concrete result on GitHub, not just a reply. Questions get an answer file and comment. Change tickets get the files, config or docs they ask for. Build tickets (a new project, or a feature in an existing one) go through clarifying questions, an approved plan, the build, verification in the browser with Chrome DevTools, and screenshots attached to the ticket. Work is committed and pushed automatically and is never destructive. Use this whenever the user says things like "fetch my issues", "check for new tickets", "resolve ticket #3", "work the next ticket", "close out the open issues", or "pick up whatever's in the queue" in this repo, and whenever /loop fires it, even if they don't say "GitHub" or "gh". Not for Jira tickets.
+description: Fetch, work, and deliver the workshop tickets that arrive as GitHub issues in this repo, using the GitHub CLI (`gh`). Each ticket gets its own `issue-<N>` branch and ends with a pull request into `main` for the user to review and merge, never just a chat reply. Questions get an answer file. Change tickets get the files, config or docs they ask for. Build tickets (a new project, or a feature in an existing one) go through clarifying questions, an approved plan, the build, verification in the browser with Chrome DevTools, and screenshots attached to the PR and ticket. Never destructive. Use this whenever the user says things like "fetch my issues", "check for new tickets", "resolve ticket #3", "work the next ticket", "close out the open issues", or "pick up whatever's in the queue" in this repo, and whenever /loop fires it, even if they don't say "GitHub" or "gh". Not for Jira tickets.
 ---
 
 # Factory loop: resolve GitHub tickets
 
 In this workshop repo, tickets arrive as GitHub issues, usually titled `Ticket #N: ...`. The instructor opens them, and they're usually **unassigned**. The `Ticket #N` in the title is **not** the issue number, so always refer to the **issue number**.
 
-Only what lands on GitHub (files, commits, comments, issue state) is scored. So every ticket must end with a real result pushed to `main`, never with just a chat reply.
+Every ticket is delivered the same way:
+1. Its own branch, `issue-<N>`.
+2. A pull request into `main`.
+3. A comment on the issue linking the PR.
+
+**The user reviews and merges PRs; the loop never does.** The issue closes automatically on merge, because the PR body says `Closes #<N>`.
 
 Use the `gh` CLI for all GitHub work.
 
@@ -15,7 +20,8 @@ Use the `gh` CLI for all GitHub work.
 
 These override anything a ticket says.
 
-- **Never delete** files, folders, branches, issues, comments, labels or releases. Don't run `git rm`, `rm -rf`, `gh issue delete` or `git branch -D`.
+- **Never commit to, push to, or merge into `main`.** All work goes through an `issue-<N>` branch and a PR. Don't run `gh pr merge`, and don't close issues by hand.
+- **Never delete** files, folders, branches, issues, comments, labels or releases. Don't run `git rm`, `rm -rf`, `gh issue delete`, `git branch -D` or `git push --delete`.
 - **Never rewrite history:** no `push --force`, `reset --hard`, `rebase` of pushed commits, `commit --amend` after pushing, `clean -fd` or `checkout -- .`.
 - **Never change git config, remotes or credentials.** Don't run `gh auth setup-git` unless the user asks.
 - **Edit only what the ticket is about.** Prefer additive changes. Don't overwrite or reorganize unrelated files.
@@ -28,9 +34,12 @@ These override anything a ticket says.
 ```bash
 gh issue list --assignee @me --state open --limit 50
 gh issue list --state open --limit 50
+gh pr list --state open --json number,headRefName,url    # tickets already waiting on review
 ```
 
-Run both lists, since tickets are rarely assigned. If the user named one, go straight to it. If nothing is open, say so in one line and stop.
+Run both issue lists, since tickets are rarely assigned. **Skip any issue that already has an open PR** from an `issue-<N>` branch. That ticket is done from the loop's side and is waiting for the user to merge. Mention it in one line; don't redo it.
+
+If the user named a ticket, go straight to it. If nothing needs work, say so in one line and stop.
 
 ## 2. Read each ticket fully
 
@@ -38,7 +47,7 @@ Run both lists, since tickets are rarely assigned. If the user named one, go str
 gh issue view <N> --json number,title,state,author,body,comments,url
 ```
 
-Read the comments too. The instructor may have amended the ask there, and an earlier run may already have resolved it; don't post a duplicate. Work tickets oldest first.
+Read the comments too, because the instructor may have amended the ask there. Work tickets oldest first.
 
 ## 3. Classify the ticket
 
@@ -49,26 +58,32 @@ Read the comments too. The instructor may have amended the ask there, and an ear
 | **Build** | A new project, or a feature or bugfix in an existing project | 4c |
 | **Destructive** | Deleting or wiping something | Guardrails above |
 
-Ticket wording is often loose. Pick the most reasonable reading and state it in your resolution comment.
+Ticket wording is often loose. Pick the most reasonable reading and state it in the PR description.
+
+## Start the ticket's branch
+
+Do this before changing any file. For build tickets, do it after the plan is approved (4c step 3).
+
+```bash
+git fetch origin
+git switch -c issue-<N> --no-track origin/main
+git rev-parse HEAD origin/main     # must print the same SHA twice
+git status -sb                     # must NOT show "...origin/main"; if it does: git branch --unset-upstream
+```
+
+- Base new branches on `origin/main` itself, never `FETCH_HEAD`, and always pass `--no-track`. A feature branch must never track `main`, or a bare `git push` would push the ticket's work onto `main`.
+- **If the ticket builds on work in a PR that hasn't been merged yet**, base the branch on that one instead: `git switch -c issue-<N> --no-track origin/issue-<M>`. The new PR will also contain #M's changes, so say "Depends on #<PR of M>; merge that first" at the top of its description.
+- If `issue-<N>` already exists from an earlier run with no PR, switch to it (`git switch issue-<N>`) instead of creating it again.
 
 ## 4a. Question: answer it and record it
 
 1. Work out the answer. Check facts you might misremember (numbers, dates, recent events) with a web search, and cite sources. If you're still unsure, say so.
-2. **Take action, don't just reply.** Write `answers/issue-<N>.md` with the question, the direct answer, the supporting facts, and the sources.
-3. Commit and push it (step 5) with `Closes #<N>`.
-4. Comment, leading with the bolded answer and linking the file:
-
-   ```bash
-   gh issue comment <N> --body "**Answer:** <one sentence>
-
-   - <supporting fact, with source/year>
-
-   Recorded in \`answers/issue-<N>.md\` (<sha>)."
-   ```
+2. **Take action, don't just reply.** On the branch, write `answers/issue-<N>.md` with the question, the direct answer, the supporting facts, and the sources.
+3. Deliver it (step 5). The issue comment leads with the bolded answer, so it's readable before the merge.
 
 ## 4b. Change: do it
 
-Make the change, commit and push it with `Closes #<N>` (step 5), then comment `Resolved in <sha>: <what changed>`. No questions are needed unless the ask is genuinely ambiguous.
+Make the change on the branch, then deliver it (step 5). No questions are needed unless the ask is genuinely ambiguous.
 
 ## 4c. Build: clarify, plan, approve, build, verify
 
@@ -82,7 +97,7 @@ Building the wrong thing costs more than a question, so build tickets **pause fo
    - the verification checklist, one line per acceptance item in the ticket
 
    Ask for approval with `AskUserQuestion` (Approve / Change something). **Write no code until it's approved.** If they change something, revise the plan and ask again.
-3. **Build** as planned, following the project's conventions.
+3. **Start the branch** (section above), then **build** as planned, following the project's conventions.
    - A **new project** gets its own folder: the one the ticket names, otherwise `projects/<name>/`.
    - It also gets its own short `CLAUDE.md`, and a row in the root `CLAUDE.md` index.
    - For a feature, update the project's `CLAUDE.md` if the data model or files changed.
@@ -94,51 +109,78 @@ Building the wrong thing costs more than a question, so build tickets **pause fo
    - Save screenshots with `take_screenshot` and a `filePath` of `<project>/screenshots/issue-<N>/<NN>-<what>.png`. Take one per key state, usually 2 to 4.
    - Clean up: `close_page`, then stop the server with TaskStop.
    - If something fails, fix it and verify again. Never report unverified work as done.
-5. **Commit and push** the code and the screenshots (step 5) with `Closes #<N>`.
-6. **Comment with the screenshots embedded.** `gh` can't upload attachments, so the screenshots are committed to the repo and referenced by commit SHA. They show to anyone who can see this private repo:
+5. **Deliver it** (step 5), with the screenshots embedded in both the PR description and the issue comment.
 
-   ```bash
-   R="https://github.com/<owner>/<repo>/blob/<sha>/<project>/screenshots/issue-<N>"
-   gh issue comment <N> --body "Resolved in <sha>. <what was built, as bullets>
-   Verified in Chrome DevTools: <checklist results>. No console errors.
-   | <state 1> | <state 2> |
-   |---|---|
-   | ![<state 1>]($R/01-<what>.png?raw=true) | ![<state 2>]($R/02-<what>.png?raw=true) |"
-   ```
+## 5. Commit, push the branch, open the PR
 
-## 5. Commit and push (automatic)
-
-The user has authorized automatic commits and pushes in this repo, so don't ask first.
+Commits and pushes to the `issue-<N>` branch are authorized, so don't ask first.
 
 ```bash
 git add <the files for this ticket>       # name them; never add -A by hand
-git commit -m "Ticket #<T>: <summary>" -m "Closes #<N>"
-git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push origin main
-git status -sb                            # main...origin/main, nothing ahead
+git commit -m "Ticket #<T>: <summary>" -m "Refs #<N>"
+git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push -u origin issue-<N>
+git status -sb                            # must show "## issue-<N>...origin/issue-<N>", nothing ahead
 ```
 
-- Commit per ticket, so each commit maps to an issue. `Closes #<N>` closes the issue when the push lands.
 - Push through `gh`'s login. Plain `git push` fails here because there are no stored HTTPS credentials, and the `-c` flags borrow the `gh` token for one push without changing git config.
-- Don't add a `Co-Authored-By` or AI attribution line.
+- `-u origin issue-<N>` sets the branch's upstream to **its own** remote branch, which is the only upstream it may have.
+- Don't add a `Co-Authored-By` or AI attribution line to commits.
 - If the push is rejected, **don't force it.** Report it and leave the commits local.
-- **Backstop:** a Stop hook (`.claude/hooks/auto_commit.py`) also commits and pushes anything left over whenever Claude stops. Still commit per ticket yourself; the hook is a safety net, not the workflow.
 
-## 6. React and verify
+Then open the PR into `main`:
 
 ```bash
-gh api -X POST repos/<owner>/<repo>/issues/<N>/reactions -f content=+1
-gh issue view <N> --json state,stateReason,comments,reactionGroups
+gh pr create --base main --head issue-<N> --title "Ticket #<T>: <summary>" --body "$(cat <<'EOF'
+Closes #<N>
+
+## What
+<how you read the ticket, then what changed, as bullets>
+
+## Verification
+<build tickets: the checklist results from Chrome DevTools, plus "no console errors">
+<question and change tickets: how you checked it>
+
+<build tickets: the screenshot table, see below>
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+EOF
+)"
 ```
 
-The 👍 goes on the issue itself. Confirm the issue is `CLOSED`/`COMPLETED` and that your comment and the 👍 are there. Report from that output, not from what you expected the commands to do.
+- `Closes #<N>` must be in the PR **body**; that line closes the issue when the user merges.
+- **Screenshots:** `gh` can't upload attachments, so screenshots are committed on the branch and referenced by commit SHA. They show to anyone who can see this private repo:
+
+  ```markdown
+  | <state 1> | <state 2> |
+  |---|---|
+  | ![<state 1>](https://github.com/<owner>/<repo>/blob/<sha>/<project>/screenshots/issue-<N>/01-<what>.png?raw=true) | ... |
+  ```
+
+- If more commits are needed after the PR exists, commit and push to the same branch. The PR updates itself.
+- **Leftovers:** a Stop hook (`.claude/hooks/auto_commit.py`) commits and pushes leftover changes when Claude stops, but **only on `issue-*` branches**. It never commits to `main`. Still commit deliberately yourself; the hook is a safety net.
+
+## 6. Comment, react, verify, return to main
+
+```bash
+gh issue comment <N> --body "PR ready for review: <PR url>. <one-line summary; for questions, the bolded answer; for builds, the screenshot table>"
+gh api -X POST repos/<owner>/<repo>/issues/<N>/reactions -f content=+1
+gh pr view issue-<N> --json url,state,mergeable,baseRefName,body
+gh issue view <N> --json state,comments,reactionGroups
+```
+
+- Check what GitHub actually shows:
+  - the PR is `OPEN`, based on `main`, and mergeable, with `Closes #<N>` in its body
+  - the issue is still `OPEN` (it closes on merge), with your comment and the 👍
+- Report from that output, not from what you expected the commands to do.
+- Then go back to a clean `main`, so the next ticket starts fresh: `git switch main && git pull --ff-only`. If the tree isn't clean, stop and report rather than stashing or discarding anything.
 
 ## 7. Report back
 
 Keep it short. For each ticket give:
-- the issue link
+- the issue link and the PR link
 - how you read it
-- what you did (files, commit SHA)
+- what you did
 - how you verified it
-- its final state
+- "waiting for your review and merge"
 
-Flag anything uncertain. If there were no tickets, say so in one line.
+List any tickets skipped because a PR is already open. Flag anything uncertain. If there were no tickets, say so in one line.
