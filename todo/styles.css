@@ -187,6 +187,7 @@ input:focus-visible {
 }
 
 .due,
+.repeat,
 .tag {
   padding: 1px 8px;
   border-radius: 999px;
@@ -205,6 +206,24 @@ input:focus-visible {
 .due.overdue {
   color: var(--danger);
   border-color: var(--danger);
+}
+
+.repeat {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
+}
+
+.stop-repeat {
+  padding: 1px 4px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 18px;
+  text-decoration: underline;
+}
+
+.stop-repeat:hover {
+  color: var(--text);
 }
 
 .tag {

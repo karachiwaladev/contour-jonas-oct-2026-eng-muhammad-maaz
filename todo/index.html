@@ -20,6 +20,16 @@
             <span>Due</span>
             <input id="new-task-due" type="date" />
           </label>
+          <label class="field">
+            <span>Repeat</span>
+            <select id="new-task-repeat">
+              <option value="">Does not repeat</option>
+              <option value="daily">Daily</option>
+              <option value="weekdays">Weekdays</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+            </select>
+          </label>
           <label class="field tags-field">
             <span>Tags</span>
             <input id="new-task-tags" type="text" placeholder="work, home" maxlength="200" />
@@ -48,6 +58,7 @@
       <p id="counter" class="counter" aria-live="polite"></p>
     </main>
 
+    <script src="recurrence.js"></script>
     <script src="db.js"></script>
     <script src="app.js"></script>
   </body>

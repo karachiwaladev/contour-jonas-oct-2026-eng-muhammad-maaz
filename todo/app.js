@@ -4,6 +4,7 @@
   const input = document.getElementById("new-task-title");
   const dueInput = document.getElementById("new-task-due");
   const tagsInput = document.getElementById("new-task-tags");
+  const repeatInput = document.getElementById("new-task-repeat");
   const list = document.getElementById("task-list");
   const empty = document.getElementById("empty-state");
   const counter = document.getElementById("counter");
@@ -118,7 +119,7 @@
     body.append(label);
 
     const due = dueInfo(task);
-    if (due || task.tags.length) {
+    if (due || task.tags.length || task.repeat) {
       const meta = document.createElement("div");
       meta.className = "task-meta";
       if (due) {
@@ -126,6 +127,18 @@
         badge.className = "due" + (due.overdue ? " overdue" : "") + (due.today ? " today" : "");
         badge.textContent = due.overdue ? due.text + " · overdue" : due.text;
         meta.append(badge);
+      }
+      if (task.repeat) {
+        const rep = document.createElement("span");
+        rep.className = "repeat";
+        rep.textContent = "↻ " + Recurrence.LABELS[task.repeat];
+        const stop = document.createElement("button");
+        stop.type = "button";
+        stop.className = "stop-repeat";
+        stop.textContent = "Stop repeating";
+        stop.setAttribute("aria-label", `Stop repeating "${task.title}"`);
+        stop.addEventListener("click", () => stopRepeating(task));
+        meta.append(rep, stop);
       }
       for (const tag of task.tags) {
         const chip = document.createElement("button");
@@ -162,7 +175,32 @@
   }
 
   async function toggle(task) {
+    if (!task.done && task.repeat) return completeRecurring(task);
     const updated = { ...task, done: !task.done };
+    await TodoDB.update(updated);
+    tasks = tasks.map((t) => (t.id === task.id ? updated : t));
+    render();
+  }
+
+  // Roll forward: this occurrence becomes a plain completed task (repeat cleared,
+  // so un-ticking it later can't spawn another copy), and the next occurrence
+  // carries the repeat on, due one interval later on the strict schedule.
+  async function completeRecurring(task) {
+    const done = { ...task, done: true, repeat: null, anchorDay: null };
+    const next = await TodoDB.completeRecurring(done, {
+      title: task.title,
+      tags: task.tags,
+      dueDate: Recurrence.nextDue(task.dueDate || Recurrence.format(new Date()), task.repeat, task.anchorDay),
+      repeat: task.repeat,
+      anchorDay: task.anchorDay,
+    });
+    tasks = tasks.map((t) => (t.id === task.id ? done : t));
+    tasks.push(next);
+    render();
+  }
+
+  async function stopRepeating(task) {
+    const updated = { ...task, repeat: null, anchorDay: null };
     await TodoDB.update(updated);
     tasks = tasks.map((t) => (t.id === task.id ? updated : t));
     render();
@@ -181,7 +219,11 @@
       input.focus();
       return;
     }
-    add(title, { dueDate: dueInput.value || null, tags: parseTags(tagsInput.value) })
+    const repeat = Recurrence.isRepeat(repeatInput.value) ? repeatInput.value : null;
+    // A repeating task needs a schedule to repeat from; default its due date to today.
+    const dueDate = dueInput.value || (repeat ? Recurrence.format(new Date()) : null);
+    const anchorDay = repeat === "monthly" ? Recurrence.parse(dueDate).getDate() : null;
+    add(title, { dueDate, tags: parseTags(tagsInput.value), repeat, anchorDay })
       .then(() => {
         form.reset();
         input.focus();
