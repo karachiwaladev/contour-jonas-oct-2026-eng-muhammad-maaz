@@ -45,10 +45,36 @@ h1 {
 
 .new-task {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
-.new-task input {
+.new-task-extra {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex-basis: 100%;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.tags-field {
+  flex: 1;
+  min-width: 180px;
+}
+
+.tags-field input {
+  flex: 1;
+}
+
+.new-task input,
+.field select {
   flex: 1;
   min-width: 0;
   padding: 10px 12px;
@@ -69,7 +95,51 @@ button {
   cursor: pointer;
 }
 
+.field input,
+.field select {
+  padding: 6px 10px;
+  font-size: 14px;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.status-filter {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.status-filter button {
+  padding: 6px 12px;
+  border-radius: 0;
+  background: var(--card);
+  color: var(--text);
+  font-size: 14px;
+}
+
+.status-filter button + button {
+  border-left: 1px solid var(--border);
+}
+
+.status-filter button[aria-pressed="true"] {
+  background: var(--accent);
+  color: #fff;
+}
+
+.field select:disabled {
+  opacity: 0.6;
+}
+
 button:focus-visible,
+select:focus-visible,
 input:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -98,13 +168,55 @@ input:focus-visible {
   accent-color: var(--accent);
 }
 
-.task label {
+.task-body {
   flex: 1;
+  min-width: 0;
+}
+
+.task label {
+  display: block;
   overflow-wrap: anywhere;
   cursor: pointer;
 }
 
-.task.done label {
+.task-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.due,
+.tag {
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.due.today {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.due.overdue {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.tag {
+  cursor: pointer;
+}
+
+.tag:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.task.done > .task-body > label {
   color: var(--muted);
   text-decoration: line-through;
 }

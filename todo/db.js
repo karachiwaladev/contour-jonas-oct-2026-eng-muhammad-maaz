@@ -1,6 +1,7 @@
 // Thin promise wrapper around IndexedDB: one database, one "tasks" store.
-// A task is { id, title, done, createdAt }. Exposed as window.TodoDB so the
-// app works from file:// without a module loader or build step.
+// A task is { id, title, done, createdAt, dueDate, tags }, where dueDate is
+// "YYYY-MM-DD" or null and tags is an array of lowercase strings. Exposed as
+// window.TodoDB so the app works from file:// without a module loader or build step.
 (function () {
   const DB_NAME = "todo-app";
   const DB_VERSION = 1;
@@ -40,14 +41,19 @@
     });
   }
 
+  // Tasks saved before due dates and tags existed lack those fields; default them.
+  function normalize(task) {
+    return { dueDate: null, tags: [], ...task };
+  }
+
   window.TodoDB = {
     all() {
       return withStore("readonly", (s) => s.getAll()).then((tasks) =>
-        tasks.sort((a, b) => a.createdAt - b.createdAt)
+        tasks.map(normalize).sort((a, b) => a.createdAt - b.createdAt)
       );
     },
-    add(title) {
-      const task = { title, done: false, createdAt: Date.now() };
+    add(title, { dueDate = null, tags = [] } = {}) {
+      const task = { title, done: false, createdAt: Date.now(), dueDate, tags };
       return withStore("readwrite", (s) => s.add(task)).then((id) => ({ ...task, id }));
     },
     update(task) {

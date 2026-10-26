@@ -14,12 +14,36 @@
         <label for="new-task-title" class="visually-hidden">New task</label>
         <input id="new-task-title" type="text" placeholder="What needs doing?" maxlength="200" required />
         <button type="submit">Add</button>
+        <div class="new-task-extra">
+          <label class="field">
+            <span>Due</span>
+            <input id="new-task-due" type="date" />
+          </label>
+          <label class="field tags-field">
+            <span>Tags</span>
+            <input id="new-task-tags" type="text" placeholder="work, home" maxlength="200" />
+          </label>
+        </div>
       </form>
 
       <p id="error" class="error" role="alert" hidden></p>
 
+      <div class="filters" aria-label="Filters">
+        <div class="status-filter" role="group" aria-label="Show">
+          <button type="button" data-status="all" aria-pressed="true">All</button>
+          <button type="button" data-status="active" aria-pressed="false">Active</button>
+          <button type="button" data-status="completed" aria-pressed="false">Completed</button>
+        </div>
+        <label class="field tag-filter">
+          <span>Tag</span>
+          <select id="tag-filter">
+            <option value="">All tags</option>
+          </select>
+        </label>
+      </div>
+
       <ul id="task-list" class="task-list" aria-label="Tasks"></ul>
-      <p id="empty-state" class="empty">No tasks yet. Add one above.</p>
+      <p id="empty-state" class="empty" hidden></p>
       <p id="counter" class="counter" aria-live="polite"></p>
     </main>
 

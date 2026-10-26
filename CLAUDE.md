@@ -49,7 +49,7 @@ that project's `CLAUDE.md`, not here.
 
 | Folder | Purpose | Ticket(s) |
 |--------|---------|-----------|
-| `todo/` | Todo app: create / complete / delete tasks, IndexedDB storage, no build | #4 |
+| `todo/` | Todo app: tasks with due dates + tags, status/tag filters, IndexedDB, no build | #4, #5 |
 
 ## Ticket flow (summary)
 
