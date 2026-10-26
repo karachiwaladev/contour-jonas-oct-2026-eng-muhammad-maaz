@@ -29,7 +29,8 @@ that project's `CLAUDE.md`, not here.
 
 ## Layout
 
-- Every project gets **its own folder** under `projects/<project-name>/`.
+- Every project gets **its own folder**: the folder a ticket names (e.g. `todo/`),
+  otherwise `projects/<project-name>/`.
 - Each project folder has its own `CLAUDE.md` (short, same progressive-disclosure rule)
   and is registered in the index below.
 - Factory tooling (skills, agents, settings) lives in `.claude/`.
@@ -48,7 +49,7 @@ that project's `CLAUDE.md`, not here.
 
 | Folder | Purpose | Ticket(s) |
 |--------|---------|-----------|
-| _none yet_ | Add a row when a ticket creates a project | |
+| `todo/` | Todo app: create / complete / delete tasks, IndexedDB storage, no build | #4 |
 
 ## Ticket flow (summary)
 
