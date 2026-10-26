@@ -1,5 +1,9 @@
 """Stop hook: commit and push whatever work is in the tree when Claude stops.
 
+It acts only on ticket branches (issue-<N>), which reach main through a PR the
+user merges. On main or any other branch it never commits or pushes. It only
+warns if there are real uncommitted changes, so nothing lands on main directly.
+
 Non-destructive by design: it only ever adds commits and does a plain push.
 It never force-pushes, resets, rebases, stashes, or deletes anything. When it
 can't act safely (detached HEAD, a merge or rebase in progress, no upstream,
@@ -16,6 +20,7 @@ import subprocess
 import sys
 
 LOG_ONLY = {".claude/logs/prompts.jsonl"}
+TICKET_PREFIX = "issue-"
 PUSH_AUTH = ["-c", "credential.helper=", "-c", "credential.helper=!gh auth git-credential"]
 
 
@@ -46,6 +51,12 @@ def main():
     branch = git("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
     if branch == "HEAD":
         say("skipped, detached HEAD.")
+        return
+    if not branch.startswith(TICKET_PREFIX):
+        changed = [line[3:] for line in git("status", "--porcelain").stdout.splitlines() if line[3:]]
+        if set(changed) - LOG_ONLY:
+            say(f"not committing on '{branch}', since only {TICKET_PREFIX}<N> branches are auto-committed. "
+                f"Uncommitted: {', '.join(changed[:5])}")
         return
 
     git("add", "-A")

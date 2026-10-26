@@ -45,7 +45,7 @@ that project's `CLAUDE.md`, not here.
 | `CLAUDE.md` | This file: factory overview and base index |
 | `.claude/skills/factory-loop/` | The ticket loop: fetch issues with `gh`, act on them, push, close, react |
 | `.claude/settings.json` | Stop hook: runs `log_prompts.py`, then `auto_commit.py` |
-| `.claude/hooks/` | `log_prompts.py` (prompts to `.claude/logs/prompts.jsonl`), `auto_commit.py` |
+| `.claude/hooks/` | `log_prompts.py` (prompts to `.claude/logs/prompts.jsonl`), `auto_commit.py` (`issue-*` branches only) |
 | `answers/` | `issue-<N>.md`: recorded answers to question tickets |
 | `.gitignore` | Keeps logs, locks and secrets out of auto-commits |
 
@@ -60,12 +60,13 @@ that project's `CLAUDE.md`, not here.
 Full steps are in `.claude/skills/factory-loop/SKILL.md`.
 
 1. `gh issue list --state open`: tickets are usually unassigned. Read the body **and** the comments.
-2. **Question:** write `answers/issue-<N>.md`, push, comment the answer.
-3. **Change:** make it, push with `Closes #<N>`, comment the SHA.
-4. **Build** (a project or feature): ask clarifying questions, get the plan approved, then build. Verify
-   with Chrome DevTools, commit the screenshots, and embed them in the closing comment.
-5. Commits and pushes to `main` happen automatically; the Stop hook catches leftovers. 👍 the issue, then
-   verify its state on GitHub before reporting it done.
+   Skip issues that already have an open `issue-<N>` PR; they're waiting on review.
+2. Every ticket gets its own branch, `issue-<N>`, created with `--no-track` from `origin/main`.
+3. **Question:** write `answers/issue-<N>.md`. **Change:** make it. **Build** (a project or feature):
+   ask clarifying questions, get the plan approved, build, then verify with Chrome DevTools and commit
+   the screenshots.
+4. Push the branch, open a PR into `main` with `Closes #<N>`, comment the PR link on the issue, and 👍 it.
+   **The user reviews and merges**; the loop never commits to or merges into `main`.
 
 ## Ground rules
 
