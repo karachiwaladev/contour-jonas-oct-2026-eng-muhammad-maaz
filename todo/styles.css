@@ -297,6 +297,12 @@ input:focus-visible {
   gap: 8px;
 }
 
+/* `.task label` (the task title) is display: block; keep the editor's field labels inline. */
+.edit-extra .field {
+  display: flex;
+  align-items: center;
+}
+
 .edit-extra input,
 .edit-extra select {
   padding: 6px 10px;
