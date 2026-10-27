@@ -146,6 +146,36 @@ button {
   gap: 8px;
 }
 
+.search {
+  position: relative;
+  margin-top: 20px;
+}
+
+.search input {
+  width: 100%;
+  padding: 10px 40px 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+}
+
+.search-clear {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  padding: 4px 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.search-clear:hover {
+  color: var(--text);
+}
+
 button:focus-visible,
 select:focus-visible,
 input:focus-visible {

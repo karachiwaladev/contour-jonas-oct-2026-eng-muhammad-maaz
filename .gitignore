@@ -3,6 +3,8 @@ mcp_server.log
 *.log
 .claude/scheduled_tasks.lock
 .claude/settings.local.json
+# Prompt log: the Stop hook appends to it after every turn, so tracking it blocks branch switches
+.claude/logs/
 
 # Secrets: the auto-commit hook stages everything not ignored here
 .env
