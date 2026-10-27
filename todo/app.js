@@ -5,15 +5,22 @@
   const dueInput = document.getElementById("new-task-due");
   const tagsInput = document.getElementById("new-task-tags");
   const repeatInput = document.getElementById("new-task-repeat");
+  const priorityInput = document.getElementById("new-task-priority");
   const list = document.getElementById("task-list");
   const empty = document.getElementById("empty-state");
   const counter = document.getElementById("counter");
   const errorBox = document.getElementById("error");
   const statusButtons = document.querySelectorAll(".status-filter button");
   const tagSelect = document.getElementById("tag-filter");
+  const prioritySelect = document.getElementById("priority-filter");
+  const sortSelect = document.getElementById("sort-select");
 
   let tasks = [];
-  const filters = { status: "all", tag: "" };
+  const filters = { status: "all", tag: "", priority: "" }; // priority: "", a level, or "none"
+  let sortMode = "created";
+  // Inline edit: one task at a time. The draft keeps typed values across re-renders
+  // (e.g. ticking another task while editing) until Save or Cancel.
+  let editing = null; // { id, title, dueDate, tags, priority, focus }
 
   function showError(err) {
     errorBox.textContent = "Something went wrong: " + (err && err.message ? err.message : err);
@@ -64,6 +71,8 @@
     if (filters.status === "active" && task.done) return false;
     if (filters.status === "completed" && !task.done) return false;
     if (filters.tag && !task.tags.includes(filters.tag)) return false;
+    if (filters.priority === "none" && task.priority) return false;
+    if (Priority.isPriority(filters.priority) && task.priority !== filters.priority) return false;
     return true;
   }
 
@@ -85,8 +94,15 @@
     renderTagOptions();
     renderStatusButtons();
 
-    const visible = tasks.filter(matches);
-    list.replaceChildren(...visible.map(renderTask));
+    prioritySelect.value = filters.priority;
+    sortSelect.value = sortMode;
+
+    const visible = Priority.sortTasks(tasks.filter(matches), sortMode);
+    list.replaceChildren(...visible.map((t) => (editing && editing.id === t.id ? renderEditor(t) : renderTask(t))));
+    if (editing && editing.focus) {
+      editing.focus = false;
+      document.getElementById(`edit-title-${editing.id}`)?.focus();
+    }
 
     empty.hidden = visible.length > 0;
     empty.textContent = tasks.length ? "No tasks match these filters." : "No tasks yet. Add one above.";
@@ -119,9 +135,15 @@
     body.append(label);
 
     const due = dueInfo(task);
-    if (due || task.tags.length || task.repeat) {
+    if (due || task.tags.length || task.repeat || task.priority) {
       const meta = document.createElement("div");
       meta.className = "task-meta";
+      if (Priority.isPriority(task.priority)) {
+        const pri = document.createElement("span");
+        pri.className = "priority " + task.priority;
+        pri.textContent = Priority.LABELS[task.priority];
+        meta.append(pri);
+      }
       if (due) {
         const badge = document.createElement("span");
         badge.className = "due" + (due.overdue ? " overdue" : "") + (due.today ? " today" : "");
@@ -159,8 +181,136 @@
     del.setAttribute("aria-label", `Delete "${task.title}"`);
     del.addEventListener("click", () => remove(task));
 
-    li.append(checkbox, body, del);
+    const edit = document.createElement("button");
+    edit.type = "button";
+    edit.className = "edit";
+    edit.textContent = "Edit";
+    edit.setAttribute("aria-label", `Edit "${task.title}"`);
+    edit.addEventListener("click", () => startEdit(task));
+
+    li.append(checkbox, body, edit, del);
     return li;
+  }
+
+  function field(labelText, control) {
+    const label = document.createElement("label");
+    label.className = "field";
+    const span = document.createElement("span");
+    span.textContent = labelText;
+    label.append(span, control);
+    return label;
+  }
+
+  function renderEditor(task) {
+    const li = document.createElement("li");
+    li.className = "task editing";
+    li.dataset.id = task.id;
+
+    const form = document.createElement("form");
+    form.className = "edit-form";
+    form.setAttribute("aria-label", `Edit "${task.title}"`);
+
+    const title = document.createElement("input");
+    title.type = "text";
+    title.id = `edit-title-${task.id}`;
+    title.maxLength = 200;
+    title.required = true;
+    title.value = editing.title;
+    title.setAttribute("aria-label", "Title");
+    title.addEventListener("input", () => (editing.title = title.value));
+
+    const due = document.createElement("input");
+    due.type = "date";
+    due.value = editing.dueDate;
+    due.required = Boolean(task.repeat); // a repeating task needs a date to repeat from
+    due.addEventListener("input", () => (editing.dueDate = due.value));
+
+    const tags = document.createElement("input");
+    tags.type = "text";
+    tags.maxLength = 200;
+    tags.placeholder = "work, home";
+    tags.value = editing.tags;
+    tags.addEventListener("input", () => (editing.tags = tags.value));
+
+    const priority = document.createElement("select");
+    priority.append(new Option("None", ""), ...Object.entries(Priority.LABELS).map(([v, l]) => new Option(l, v)));
+    priority.value = editing.priority;
+    priority.addEventListener("change", () => (editing.priority = priority.value));
+
+    const save = document.createElement("button");
+    save.type = "submit";
+    save.textContent = "Save";
+
+    const cancel = document.createElement("button");
+    cancel.type = "button";
+    cancel.className = "cancel";
+    cancel.textContent = "Cancel";
+    cancel.addEventListener("click", cancelEdit);
+
+    const extra = document.createElement("div");
+    extra.className = "edit-extra";
+    extra.append(field("Due", due), field("Priority", priority), field("Tags", tags));
+    extra.lastChild.classList.add("tags-field");
+
+    const actions = document.createElement("div");
+    actions.className = "edit-actions";
+    actions.append(save, cancel);
+
+    form.append(title, extra, actions);
+    form.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        cancelEdit();
+      }
+    });
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      saveEdit(task).catch(showError);
+    });
+
+    li.append(form);
+    return li;
+  }
+
+  function startEdit(task) {
+    editing = {
+      id: task.id,
+      title: task.title,
+      dueDate: task.dueDate || "",
+      tags: task.tags.join(", "),
+      priority: task.priority || "",
+      focus: true,
+    };
+    render();
+  }
+
+  function cancelEdit() {
+    const id = editing && editing.id;
+    editing = null;
+    render();
+    list.querySelector(`li[data-id="${id}"] .edit`)?.focus();
+  }
+
+  async function saveEdit(task) {
+    const title = editing.title.trim();
+    if (!title) {
+      document.getElementById(`edit-title-${task.id}`)?.focus();
+      return;
+    }
+    const dueDate = editing.dueDate || (task.repeat ? task.dueDate : null);
+    const updated = {
+      ...task,
+      title,
+      dueDate,
+      tags: parseTags(editing.tags),
+      priority: Priority.isPriority(editing.priority) ? editing.priority : null,
+      // Moving a monthly task's date moves the day it repeats on.
+      anchorDay: task.repeat === "monthly" && dueDate ? Recurrence.parse(dueDate).getDate() : task.anchorDay,
+    };
+    await TodoDB.update(updated);
+    tasks = tasks.map((t) => (t.id === task.id ? updated : t));
+    editing = null;
+    render();
   }
 
   function setTagFilter(tag) {
@@ -193,6 +343,7 @@
       dueDate: Recurrence.nextDue(task.dueDate || Recurrence.format(new Date()), task.repeat, task.anchorDay),
       repeat: task.repeat,
       anchorDay: task.anchorDay,
+      priority: task.priority,
     });
     tasks = tasks.map((t) => (t.id === task.id ? done : t));
     tasks.push(next);
@@ -209,6 +360,7 @@
   async function remove(task) {
     await TodoDB.remove(task.id);
     tasks = tasks.filter((t) => t.id !== task.id);
+    if (editing && editing.id === task.id) editing = null;
     render();
   }
 
@@ -223,7 +375,8 @@
     // A repeating task needs a schedule to repeat from; default its due date to today.
     const dueDate = dueInput.value || (repeat ? Recurrence.format(new Date()) : null);
     const anchorDay = repeat === "monthly" ? Recurrence.parse(dueDate).getDate() : null;
-    add(title, { dueDate, tags: parseTags(tagsInput.value), repeat, anchorDay })
+    const priority = Priority.isPriority(priorityInput.value) ? priorityInput.value : null;
+    add(title, { dueDate, tags: parseTags(tagsInput.value), repeat, anchorDay, priority })
       .then(() => {
         form.reset();
         input.focus();
@@ -239,6 +392,16 @@
   );
 
   tagSelect.addEventListener("change", () => setTagFilter(tagSelect.value));
+
+  prioritySelect.addEventListener("change", () => {
+    filters.priority = prioritySelect.value;
+    render();
+  });
+
+  sortSelect.addEventListener("change", () => {
+    sortMode = sortSelect.value;
+    render();
+  });
 
   // Surface failures from toggle/delete too, without wrapping every handler.
   window.addEventListener("unhandledrejection", (e) => showError(e.reason));
