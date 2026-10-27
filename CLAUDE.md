@@ -45,8 +45,8 @@ that project's `CLAUDE.md`, not here.
 | `CLAUDE.md` | This file: factory overview and base index |
 | `.claude/skills/factory-loop/` | The ticket loop: fetch issues with `gh`, act on them, push, close, react |
 | `.claude/skills/factory-loop/scripts/scan_ticket.py` | Prompt-injection and attack tripwire for a ticket (`gh issue view … \| python …`) |
-| `.claude/settings.json` | Stop hook: runs `log_prompts.py`, then `auto_commit.py` |
-| `.claude/hooks/` | `log_prompts.py` (prompts to `.claude/logs/prompts.jsonl`), `auto_commit.py` (`issue-*` branches only) |
+| `.claude/settings.json` | `permissions.deny` (rm -rf, force push, pipe-to-shell, `.env`), PreToolUse block hook, Stop hook |
+| `.claude/hooks/` | `block_dangerous.py` (PreToolUse, exit 2), `log_prompts.py` (to `.claude/logs/prompts.jsonl`), `auto_commit.py` (`issue-*` only) |
 | `answers/` | `issue-<N>.md`: recorded answers to question tickets |
 | `.gitignore` | Keeps logs, locks and secrets out of auto-commits |
 
