@@ -1,5 +1,58 @@
 {
+  "env": {
+    "CLAUDE_CODE_USE_POWERSHELL_TOOL": "1"
+  },
+  "permissions": {
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(rm -fr *)",
+      "Bash(rm -Rf *)",
+      "Bash(rm -fR *)",
+      "Bash(rm -r -f *)",
+      "Bash(rm -f -r *)",
+      "Bash(rm --recursive --force *)",
+      "Bash(rm --force --recursive *)",
+      "PowerShell(Remove-Item * -Recurse -Force*)",
+      "PowerShell(Remove-Item * -Force -Recurse*)",
+
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git push * --force*)",
+      "Bash(git push * -f*)",
+      "Bash(git * push --force*)",
+      "Bash(git * push -f*)",
+      "Bash(git * push * --force*)",
+      "Bash(git * push * -f*)",
+
+      "Bash(sh)",
+      "Bash(sh -)",
+      "Bash(sh -s*)",
+      "Bash(bash)",
+      "Bash(bash -)",
+      "Bash(bash -s*)",
+      "Bash(zsh)",
+      "PowerShell(iex)",
+      "PowerShell(iex *)",
+      "PowerShell(Invoke-Expression)",
+      "PowerShell(Invoke-Expression *)",
+
+      "Read(**/.env)",
+      "Read(**/.env.*)"
+    ]
+  },
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell|Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/block_dangerous.py\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [
