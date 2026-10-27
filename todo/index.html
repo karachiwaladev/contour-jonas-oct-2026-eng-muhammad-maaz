@@ -30,6 +30,15 @@
               <option value="monthly">Monthly</option>
             </select>
           </label>
+          <label class="field">
+            <span>Priority</span>
+            <select id="new-task-priority">
+              <option value="">None</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+          </label>
           <label class="field tags-field">
             <span>Tags</span>
             <input id="new-task-tags" type="text" placeholder="work, home" maxlength="200" />
@@ -45,12 +54,32 @@
           <button type="button" data-status="active" aria-pressed="false">Active</button>
           <button type="button" data-status="completed" aria-pressed="false">Completed</button>
         </div>
-        <label class="field tag-filter">
-          <span>Tag</span>
-          <select id="tag-filter">
-            <option value="">All tags</option>
-          </select>
-        </label>
+        <div class="filter-selects">
+          <label class="field tag-filter">
+            <span>Tag</span>
+            <select id="tag-filter">
+              <option value="">All tags</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Priority</span>
+            <select id="priority-filter">
+              <option value="">All priorities</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+              <option value="none">No priority</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Sort</span>
+            <select id="sort-select">
+              <option value="created">Created</option>
+              <option value="priority">Priority</option>
+              <option value="due">Due date</option>
+            </select>
+          </label>
+        </div>
       </div>
 
       <ul id="task-list" class="task-list" aria-label="Tasks"></ul>
@@ -59,6 +88,7 @@
     </main>
 
     <script src="recurrence.js"></script>
+    <script src="priority.js"></script>
     <script src="db.js"></script>
     <script src="app.js"></script>
   </body>
