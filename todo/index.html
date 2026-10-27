@@ -48,6 +48,12 @@
 
       <p id="error" class="error" role="alert" hidden></p>
 
+      <div class="search" role="search">
+        <label for="search-input" class="visually-hidden">Search tasks</label>
+        <input id="search-input" type="text" placeholder="Search title or #tag" maxlength="100" autocomplete="off" />
+        <button type="button" id="search-clear" class="search-clear" aria-label="Clear search" hidden>✕</button>
+      </div>
+
       <div class="filters" aria-label="Filters">
         <div class="status-filter" role="group" aria-label="Show">
           <button type="button" data-status="all" aria-pressed="true">All</button>
@@ -89,6 +95,7 @@
 
     <script src="recurrence.js"></script>
     <script src="priority.js"></script>
+    <script src="search.js"></script>
     <script src="db.js"></script>
     <script src="app.js"></script>
   </body>

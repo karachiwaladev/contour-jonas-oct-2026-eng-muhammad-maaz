@@ -54,7 +54,7 @@ that project's `CLAUDE.md`, not here.
 
 | Folder | Purpose | Ticket(s) |
 |--------|---------|-----------|
-| `todo/` | Todo app: due dates, tags, recurring tasks, priority, inline edit, filters + sort, IndexedDB, no build | #4, #5, #7, #10 |
+| `todo/` | Todo app: due dates, tags, recurring tasks, priority, inline edit, search, filters + sort, IndexedDB, no build | #4, #5, #7, #10, #16 |
 
 ## Ticket flow (summary)
 

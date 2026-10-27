@@ -14,9 +14,11 @@
   const tagSelect = document.getElementById("tag-filter");
   const prioritySelect = document.getElementById("priority-filter");
   const sortSelect = document.getElementById("sort-select");
+  const searchInput = document.getElementById("search-input");
+  const searchClear = document.getElementById("search-clear");
 
   let tasks = [];
-  const filters = { status: "all", tag: "", priority: "" }; // priority: "", a level, or "none"
+  const filters = { status: "all", tag: "", priority: "", search: "" }; // priority: "", a level, or "none"
   let sortMode = "created";
   // Inline edit: one task at a time. The draft keeps typed values across re-renders
   // (e.g. ticking another task while editing) until Save or Cancel.
@@ -73,6 +75,7 @@
     if (filters.tag && !task.tags.includes(filters.tag)) return false;
     if (filters.priority === "none" && task.priority) return false;
     if (Priority.isPriority(filters.priority) && task.priority !== filters.priority) return false;
+    if (!Search.matchesSearch(task, filters.search)) return false;
     return true;
   }
 
@@ -96,6 +99,7 @@
 
     prioritySelect.value = filters.priority;
     sortSelect.value = sortMode;
+    searchClear.hidden = !filters.search;
 
     const visible = Priority.sortTasks(tasks.filter(matches), sortMode);
     list.replaceChildren(...visible.map((t) => (editing && editing.id === t.id ? renderEditor(t) : renderTask(t))));
@@ -392,6 +396,28 @@
   );
 
   tagSelect.addEventListener("change", () => setTagFilter(tagSelect.value));
+
+  // Live search: filter on every keystroke; Esc or the ✕ button clears it.
+  function clearSearch() {
+    searchInput.value = "";
+    filters.search = "";
+    render();
+    searchInput.focus();
+  }
+
+  searchInput.addEventListener("input", () => {
+    filters.search = searchInput.value;
+    render();
+  });
+
+  searchInput.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && searchInput.value) {
+      e.preventDefault();
+      clearSearch();
+    }
+  });
+
+  searchClear.addEventListener("click", clearSearch);
 
   prioritySelect.addEventListener("change", () => {
     filters.priority = prioritySelect.value;
